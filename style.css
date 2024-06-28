@@ -1,0 +1,12 @@
+#emulator-display
+{
+    position: absolute;
+    top:50vh;
+    transform: translate(0,-50%);
+    margin:auto;
+    display: block;
+    width: 20vh;
+    height: 20vh;
+    left:0;
+    right:0;
+}
