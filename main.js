@@ -17,23 +17,49 @@ class CHIP8
     static CLOCK_SPEED = 60 // Hz
 
     static KEYBOARD_MAP = {
-        "Numpad7": "1",
-        "Numpad8": "2",
-        "Numpad9": "3",
-        "Numpad4": "4",
-        "Numpad5": "5",
-        "Numpad6": "6",
-        "Numpad1": "7",
-        "Numpad2": "8",
-        "Numpad3": "9",
-        "Numpad0": "0",
-        "Insert": "A",
-        "Home": "B",
-        "PageUp": "C",
-        "Delete": "D",
-        "End": "E",
-        "PageDown": "F",
+        0x0: 88,
+        0x1: 49,
+        0x2: 50,
+        0x3: 51,
+        0x4: 81,
+        0x5: 87,
+        0x6: 69,
+        0x7: 65,
+        0x8: 83,
+        0x9: 68,
+        0xA: 90,
+        0xB: 67,
+        0xC: 52,
+        0xD: 82,
+        0xE: 70,
+        0xF: 86,
     }
+
+    static KEYBOARD_TO_HEX_MAP = {
+        88: 0x0,
+        49: 0x1,
+        50: 0x2,
+        51: 0x3,
+        81: 0x4,
+        87: 0x5,
+        69: 0x6,
+        65: 0x7,
+        83: 0x8,
+        68: 0x9,
+        90: 0xA,
+        67: 0xB,
+        52: 0xC,
+        82: 0xD,
+        70: 0xE,
+        86: 0xF,
+    }
+
+
+
+    //  1   2	3	C
+    //  4   5   6	D
+    //  7	8	9	E
+    //  A	0	B	F
 
     constructor(data)
     {
@@ -51,9 +77,12 @@ class CHIP8
         this.display = this.createDisplay()
 
         this.pushSpritesToMemory()
-
         this.setupSoundTimer();
         this.setupDelayTimer();
+
+        this.pressedKeys = {};
+        window.onkeyup = (e) => { this.pressedKeys[e.keyCode] = false; console.log(this.pressedKeys);}
+        window.onkeydown = (e) => { this.pressedKeys[e.keyCode] = true; console.log(this.pressedKeys);}
 
         this.printMemory();
         this.loadDataToMemory();
@@ -107,9 +136,9 @@ class CHIP8
             const y = parseInt(yString, 16)
             const kk = parseInt(kkString, 16)
 
-            console.log(opcodeString, nnnString, nString, xString, yString, kkString)
+            console.log(opcodeString, " nnn=", nnn, " n=", n, " x=", x, " y=", y, " kk=", kk)
 
-            switch(opcodeString) 
+            switch(true) 
             {
                 case '00e0': // Clear the display.
                     this.clearDisplay()
@@ -224,9 +253,9 @@ class CHIP8
                     // Then Vx is subtracted from Vy, and the results stored in Vx.
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == 'e': // Set Vx = Vx SHL 1
-                    const x = this.vRegisters[x] & 0xFF;
+                    const xSHL = this.vRegisters[x] & 0xFF;
                     this.vRegisters[this.vRegisters.length - 1] = 0
-                    if((x >>> 7) === 1)
+                    if((xSHL >>> 7) === 1)
                     {
                         this.vRegisters[this.vRegisters.length - 1] = 1
                     }
@@ -262,7 +291,7 @@ class CHIP8
                     const xCoord = this.vRegisters[x]
                     const yCoord = this.vRegisters[y]
 
-                    const touchedPixel = false
+                    let touchedPixel = false
 
                     for(let i = 0; i < bytesToRead; i++)
                     {
@@ -281,19 +310,16 @@ class CHIP8
 
                         for(let x = 0; x = CHIP8.SPRITE_WIDTH; x++)
                         {
-                            if(this.getPixel(xCoord + x, yCoord))
+                            if(this.getPixel(xCoord + x, yCoord + i))
                             {
-                                this.setPixel(xCoord + x, yCoord, false)
+                                this.setPixel(xCoord + x, yCoord + i, false)
                                 touchedPixel = true
                             }
                             else
                             {
-                                this.setPixel(xCoord + x, yCoord, true)
-                            }
-                            
+                                this.setPixel(xCoord + x, yCoord + i, true)
+                            }                          
                         }
-
-
                     }
                     
                     if(touchedPixel)
@@ -302,8 +328,7 @@ class CHIP8
                     }else
                     {
                         this.vRegisters[this.vRegisters.length - 1] = 0
-                    }
-                    
+                    }               
 
                     // The interpreter reads n bytes from memory, starting at the address stored in I.
                     // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
@@ -312,20 +337,96 @@ class CHIP8
                     // If the sprite is positioned so part of it is outside the coordinates of the display,
                     // it wraps around to the opposite side of the screen. 
                     break
+                case opcodeString[0] == 'e' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
+                    const key = this.mapKeyboard(this.vRegisters[x])
+                    if(this.pressedKeys[key])
+                    {
+                        this.programCounter[0] += 2
+                    }
+                    // Checks the keyboard, and if the key corresponding to the value of Vx
+                    // is currently in the down position, PC is increased by 2.
+                    break
+                case opcodeString[0] == 'e' && opcodeString[2] == 'a' && opcodeString[3] == '1': // Skip next instruction if key with the value of Vx is not pressed.
+                    const keyN = this.mapKeyboard(this.vRegisters[x])
+                    if(!this.pressedKeys[keyN])
+                    {
+                        this.programCounter[0] += 2
+                    }
+                    // Checks the keyboard, and if the key corresponding to the value of Vx
+                    // is currently in the up position, PC is increased by 2.
+                    break
+                case opcodeString[0] == 'f' && opcodeString[2] == '0' && opcodeString[3] == '7': // Set Vx = delay timer value.
+                    this.vRegisters[x] = this.delayTimer[0]
+                    //The value of DT is placed into Vx.
+                    break
+                case opcodeString[0] == 'f' && opcodeString[2] == '0' && opcodeString[3] == 'a': // Wait for a key press, store the value of the key in Vx.
+                    let keyPressed = false
+                    while(!keyPressed)
+                    {
+                        for (let key in this.pressedKeys) {
+                            if (this.pressedKeys[key] === true) {
+                              keyPressed = true;
+                              this.vRegisters[x] = KEYBOARD_TO_HEX_MAP[key]
+                              break;
+                            }
+                          }
+                    }
+                    // All execution stops until a key is pressed, then the value of that key is stored in Vx.
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == '5': // Set delay timer = Vx.
+                    this.delayTimer[0] = this.vRegisters[x]
+                    // DT is set equal to the value of Vx.
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == '8': // Set sound timer = Vx.
+                    this.soundTimer[0] = this.vRegisters[x]
+                    // ST is set equal to the value of Vx.
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == 'e': // Set I = I + Vx.
+                    this.iRegister[0] += this.vRegisters[x]
+                    // The values of I and Vx are added, and the results are stored in I.
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '2' && opcodeString[3] == '9': // Set I = location of sprite for digit Vx.
+                    this.iRegister[0] = this.vRegisters[x] // ?
+                    // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '3' && opcodeString[3] == '3': // Store BCD representation of Vx in memory locations I, I+1, and I+2.
+                    const val = parseInt(this.vRegisters[x], 16);
+                    this.memory[this.iRegister[0]] = Math.floor(val / 100);
+                    this.memory[this.iRegister[0]+1] = Math.floor((val % 100) / 10);
+                    this.memory[this.iRegister[0]+2] = val % 10;
+                    // The interpreter takes the decimal value of Vx, 
+                    // and places the hundreds digit in memory at location in I,
+                    // the tens digit at location I+1, and the ones digit at location I+2.
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '5' && opcodeString[3] == '5': // Store registers V0 through Vx in memory starting at location I.
+                    const start = 0
+                    const end = x
+                    const memoryStartAddress = thiv.iRegister[0]
+                    for(let i = start; i < end; i++)
+                    {
+                        this.memory[memoryStartAddress + i] = this.vRegisters[i]
+                    }
+                    // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+                    break
+                case  opcodeString[0] == 'f' && opcodeString[2] == '6' && opcodeString[3] == '5': // Read registers V0 through Vx from memory starting at location I.
+                    for(let i = 0; i < x; i++)
+                    {
+                        this.vRegisters[i] = this.memory[this.iRegister[0] + i]
+                    }
+                    // The interpreter reads values from memory starting at location I into registers V0 through Vx.
+                    break
                 default:
                     console.error('unknown instruction:', opcodeString)
+                    
                     break
             }
-            
-            
-            break
         }
     }
 
     setPixel(x, y, isOn)
     {
         const pixel = this.display.createImageData(1, 1);
-        val = 0
+        let val = 0
         if(isOn)
         {
             val = 255
@@ -481,7 +582,7 @@ class CHIP8
     {
         if(key in CHIP8.KEYBOARD_MAP)
         {
-            return CHIP8.KEYBOARD_MAP[key]
+            return [key, CHIP8.KEYBOARD_MAP[key], this.pressedKeys[key]]
         }else
         {
             console.error(key + " is unknown key in chip8 architecture")
@@ -502,6 +603,8 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
         reader.readAsArrayBuffer(file);
     }
 });
+
+
 
 
 
