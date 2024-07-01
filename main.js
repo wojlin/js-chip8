@@ -113,16 +113,20 @@ class CHIP8
 
     programLoop()
     {
-        while(true)
-        {
+        setInterval(() => {
 
             const addr = this.programCounter[0]
 
-            const opcode = this.memory[addr].toString(16) + this.memory[addr+1].toString(16)
+            if(addr < CHIP8.NORMAL_START_POS || addr >= CHIP8.MEMORY_SIZE)
+            {
+                console.error("memory address overflow")
+                return
+            }
+
+            const opcode = this.memory[addr].toString(16).padStart(2, '0').toLowerCase() + this.memory[addr+1].toString(16).padStart(2, '0').toLowerCase()
             this.programCounter[0] += 2
 
-            const opcodeString = opcode.toString(16).padStart(4, '0').toLowerCase();
-            console.log(opcodeString)
+            const opcodeString = opcode.toString(16);
 
             const nnnString = opcodeString.slice(1)
             const nString = opcodeString[3]
@@ -136,20 +140,20 @@ class CHIP8
             const y = parseInt(yString, 16)
             const kk = parseInt(kkString, 16)
 
-            console.log(opcodeString, " nnn=", nnn, " n=", n, " x=", x, " y=", y, " kk=", kk)
+            console.log(addr, opcodeString, " nnn=", nnn, " n=", n, " x=", x, " y=", y, " kk=", kk)
 
             switch(true) 
             {
-                case '00e0': // Clear the display.
+                case opcodeString == '00e0': // Clear the display.
                     this.clearDisplay()
                     break;
-                case '00ee': // Return from a subroutine.
+                case opcodeString == '00ee': // Return from a subroutine.
                     this.programCounter[0] = this.stack[this.stack.length-1] // ?
                     this.stackPointer -= 1
                     //The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
                     break;
                 case opcodeString[0] == '1': // Jump to location nnn.
-                    this.programCounter[0] = parseInt(nnn, 16) // The interpreter sets the program counter to nnn.
+                    this.programCounter[0] = nnn // The interpreter sets the program counter to nnn.
                     break
                 case opcodeString[0] == '2': // Call subroutine at nnn.
                     this.stackPointer+=1
@@ -293,6 +297,7 @@ class CHIP8
 
                     let touchedPixel = false
 
+
                     for(let i = 0; i < bytesToRead; i++)
                     {
                         let byte = this.memory[startAddress+i];
@@ -307,17 +312,18 @@ class CHIP8
                             const bs = (byte & mask).toString(2);
                             byte = bs.padStart(8, '0');
                         }
-
-                        for(let x = 0; x = CHIP8.SPRITE_WIDTH; x++)
+                        
+                        for(let xIndex = 0;  xIndex < CHIP8.SPRITE_WIDTH;  xIndex++)
                         {
-                            if(this.getPixel(xCoord + x, yCoord + i))
+    
+                            if(this.getPixel(xCoord +  xIndex, yCoord + i))
                             {
-                                this.setPixel(xCoord + x, yCoord + i, false)
+                                this.setPixel(xCoord +  xIndex, yCoord + i, false)
                                 touchedPixel = true
                             }
                             else
                             {
-                                this.setPixel(xCoord + x, yCoord + i, true)
+                                this.setPixel(xCoord +  xIndex, yCoord + i, true)
                             }                          
                         }
                     }
@@ -328,7 +334,8 @@ class CHIP8
                     }else
                     {
                         this.vRegisters[this.vRegisters.length - 1] = 0
-                    }               
+                    }  
+        
 
                     // The interpreter reads n bytes from memory, starting at the address stored in I.
                     // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
@@ -420,7 +427,7 @@ class CHIP8
                     
                     break
             }
-        }
+        }, 1000 / CHIP8.CLOCK_SPEED);
     }
 
     setPixel(x, y, isOn)
@@ -478,7 +485,6 @@ class CHIP8
 
     setupSoundTimer()
     {
-        console.log(this.soundTimer[0], this.isPlaying)
 
         if(this.soundTimer[0] > 0)
         {
@@ -564,7 +570,7 @@ class CHIP8
 
     clearDisplay()
     {
-        this.display.fillRect(0, 0, display.width, display.height);
+        this.display.fillRect(0, 0, this.display.width, this.display.height);
     }
 
     createDisplay()

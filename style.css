@@ -9,4 +9,7 @@
     height: 20vh;
     left:0;
     right:0;
+    border: 1px solid black;
+    image-rendering: pixelated; /* For modern browsers */
+    image-rendering: crisp-edges; /* For older browsers */
 }
