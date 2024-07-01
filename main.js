@@ -12,7 +12,7 @@ class CHIP8
     static MEMORY_SIZE = 4096
     static NORMAL_START_POS = 512
     static ETI660_START_POS = 1536
-    static FONT_START_POS = 90
+    static FONT_START_POS = 0
 
     static CLOCK_SPEED = 60 // Hz
 
@@ -64,6 +64,7 @@ class CHIP8
     constructor(data)
     {
         this.isPlaying = false;
+        this.intervalId = 0;
 
         this.data = new Uint8Array(data)
         this.memory = new Uint8Array(CHIP8.MEMORY_SIZE) // 4096 cells of 8 bits
@@ -74,6 +75,7 @@ class CHIP8
         this.programCounter = new Uint16Array(1) // 16 bits
         this.stack = new Uint16Array(16) // 16 bits
         this.stackPointer = new Uint8Array(1) // 8 bits
+        this.currentStackSize = 0;
         this.display = this.createDisplay()
 
         this.pushSpritesToMemory()
@@ -93,12 +95,24 @@ class CHIP8
 
     printMemory()
     {
-        let hex = ""
-        for(let i = 0; i < this.data.length; i++)
+        console.group("memory dump");
+        
+        let currentMem = CHIP8.NORMAL_START_POS
+        for(let i = 0; i < this.data.length; i+=2)
         {
-            hex += this.data[i].toString(16).padStart(2, '0').toLowerCase() + " "
+            let mem = currentMem
+            let _1 = this.data[i].toString(16).padStart(2, '0').toLowerCase()
+            let _2 = ""
+            if(i+1 < this.data.length)
+            {
+                _2 = this.data[i+1].toString(16).padStart(2, '0').toLowerCase()
+            }
+            let merged = _1 + _2
+            console.log(mem, merged)
+            currentMem += 2
         }
-        console.log(hex)
+        
+        console.groupEnd();
     }
 
     loadDataToMemory()
@@ -113,13 +127,14 @@ class CHIP8
 
     programLoop()
     {
-        setInterval(() => {
+        this.intervalId = setInterval(() => {
 
-            const addr = this.programCounter[0]
+            const addr = parseInt(this.programCounter[0])
 
             if(addr < CHIP8.NORMAL_START_POS || addr >= CHIP8.MEMORY_SIZE)
             {
-                console.error("memory address overflow")
+                console.error("memory address overflow: " + addr + " [" + CHIP8.NORMAL_START_POS + "-" +CHIP8.MEMORY_SIZE + "]")
+                clearInterval(this.intervalId)
                 return
             }
 
@@ -139,8 +154,20 @@ class CHIP8
             const x = parseInt(xString, 16)
             const y = parseInt(yString, 16)
             const kk = parseInt(kkString, 16)
-
-            console.log(addr, opcodeString, " nnn=", nnn, " n=", n, " x=", x, " y=", y, " kk=", kk)
+            
+            
+            console.log("stack:", this.stack)
+            console.log("vRegisters:", this.vRegisters)
+            console.log("ram=",addr,
+                "bytecode=", opcodeString, 
+                " nnn=", nnn,
+                " n=", n,
+                " x=", x,
+                " y=", y,
+                " kk=", kk, 
+                "iRegister=", this.iRegister[0],
+                'pc', this.programCounter[0])
+            
 
             switch(true) 
             {
@@ -148,23 +175,24 @@ class CHIP8
                     this.clearDisplay()
                     break;
                 case opcodeString == '00ee': // Return from a subroutine.
-                    this.programCounter[0] = this.stack[this.stack.length-1] // ?
-                    this.stackPointer -= 1
+                    this.programCounter[0] = this.stack[this.currentStackSize-1] // ?
+                    this.stackPointer[0] -= 1
                     //The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
                     break;
                 case opcodeString[0] == '1': // Jump to location nnn.
                     this.programCounter[0] = nnn // The interpreter sets the program counter to nnn.
                     break
                 case opcodeString[0] == '2': // Call subroutine at nnn.
-                    this.stackPointer+=1
-                    this.stack[this.stack.length-1] = this.programCounter[0] // ?
+                    this.stackPointer[0]+=1
+                    this.stack[this.currentStackSize] = this.programCounter[0] // ?
+                    this.currentStackSize += 1
                     this.programCounter[0] = nnn
                     // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
                     break
                 case opcodeString[0] == '3': // Skip next instruction if Vx = kk.
                     if(this.vRegisters[x] == kk)
                     {
-                        this.programCounter += 2 // ?
+                        this.programCounter[0] += 2 // ?
                     }
                     // The interpreter compares register Vx to kk,
                     // and if they are equal, increments the program counter by 2.
@@ -172,7 +200,7 @@ class CHIP8
                 case opcodeString[0] == '4': // Skip next instruction if Vx != kk.
                     if(this.vRegisters[x] != kk)
                     {
-                        this.programCounter += 2 // ?
+                        this.programCounter[0] += 2 // ?
                     }
                     // The interpreter compares register Vx to kk, 
                     // and if they are not equal, increments the program counter by 2.
@@ -180,12 +208,12 @@ class CHIP8
                 case opcodeString[0] == '5' && opcodeString[3] == '0': // Skip next instruction if Vx = Vy.
                     if(this.vRegisters[x] == this.vRegisters[y])
                     {
-                        this.programCounter += 2 // ?
+                        this.programCounter[0] += 2 // ?
                     }
                     // The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
                     break
                 case opcodeString[0] == '6': // Set Vx = kk.
-                    this.vRegisters[x] == kk
+                    this.vRegisters[x] = kk
                     // The interpreter puts the value kk into register Vx.
                     break
                 case opcodeString[0] == '7': // Set Vx = Vx + kk.
@@ -193,7 +221,7 @@ class CHIP8
                     // Adds the value kk to the value of register Vx, then stores the result in Vx. 
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '0': // Set Vx = Vy.
-                    this.vRegisters[x] = parseInt(this.vRegisters[y]) 
+                    this.vRegisters[x] = this.vRegisters[y]
                     // Stores the value of register Vy in register Vx.
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '1': // Set Vx = Vx OR Vy.
@@ -215,7 +243,7 @@ class CHIP8
                     // and if the bits are not both the same, then the corresponding bit in the result is set to 1. Otherwise, it is 0.
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '4': // Set Vx = Vx + Vy, set VF = carry.
-                    const result = parseInt(this.vRegisters[x]) + parseInt(this.vRegisters[y])
+                    const result = this.vRegisters[x] + this.vRegisters[y]
 
                     this.vRegisters[this.vRegisters.length - 1] = 0
                     if(result > 255)
@@ -297,7 +325,8 @@ class CHIP8
 
                     let touchedPixel = false
 
-
+                    console.group("drawing")
+                    console.log("x =",xCoord," y =",yCoord, "startAddress =",startAddress, "bytesToRead =",bytesToRead)
                     for(let i = 0; i < bytesToRead; i++)
                     {
                         let byte = this.memory[startAddress+i];
@@ -312,22 +341,33 @@ class CHIP8
                             const bs = (byte & mask).toString(2);
                             byte = bs.padStart(8, '0');
                         }
+
+                        console.log(byte)
                         
+                        
+
                         for(let xIndex = 0;  xIndex < CHIP8.SPRITE_WIDTH;  xIndex++)
                         {
-    
+                            let state = true
+                            if(byte[xIndex] == '0')
+                            {
+                                state = false
+                            }
+
                             if(this.getPixel(xCoord +  xIndex, yCoord + i))
                             {
-                                this.setPixel(xCoord +  xIndex, yCoord + i, false)
+                                this.setPixel(xCoord +  xIndex, yCoord + i, !state)
                                 touchedPixel = true
                             }
                             else
                             {
-                                this.setPixel(xCoord +  xIndex, yCoord + i, true)
+                                this.setPixel(xCoord +  xIndex, yCoord + i, state)
                             }                          
                         }
                     }
                     
+                    console.groupEnd()
+
                     if(touchedPixel)
                     {
                         this.vRegisters[this.vRegisters.length - 1] = 1
@@ -345,8 +385,9 @@ class CHIP8
                     // it wraps around to the opposite side of the screen. 
                     break
                 case opcodeString[0] == 'e' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
+                    
                     const key = this.mapKeyboard(this.vRegisters[x])
-                    if(this.pressedKeys[key])
+                    if(!key[3])
                     {
                         this.programCounter[0] += 2
                     }
@@ -355,7 +396,7 @@ class CHIP8
                     break
                 case opcodeString[0] == 'e' && opcodeString[2] == 'a' && opcodeString[3] == '1': // Skip next instruction if key with the value of Vx is not pressed.
                     const keyN = this.mapKeyboard(this.vRegisters[x])
-                    if(!this.pressedKeys[keyN])
+                    if(!keyN[3])
                     {
                         this.programCounter[0] += 2
                     }
@@ -368,16 +409,22 @@ class CHIP8
                     break
                 case opcodeString[0] == 'f' && opcodeString[2] == '0' && opcodeString[3] == 'a': // Wait for a key press, store the value of the key in Vx.
                     let keyPressed = false
-                    while(!keyPressed)
-                    {
-                        for (let key in this.pressedKeys) {
-                            if (this.pressedKeys[key] === true) {
-                              keyPressed = true;
-                              this.vRegisters[x] = KEYBOARD_TO_HEX_MAP[key]
-                              break;
-                            }
-                          }
+                    
+                    for (let key in this.pressedKeys) {
+                        if (this.pressedKeys[key] === true) {
+                            keyPressed = true;
+                            console.log("pressed: " + CHIP8.KEYBOARD_TO_HEX_MAP[key])
+                            this.vRegisters[x] = CHIP8.KEYBOARD_TO_HEX_MAP[key]
+                            break;
+                        }
                     }
+                    
+                    if(keyPressed == false)
+                    {
+                        this.programCounter[0] -= 2
+
+                    }
+                    
                     // All execution stops until a key is pressed, then the value of that key is stored in Vx.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == '5': // Set delay timer = Vx.
@@ -408,7 +455,7 @@ class CHIP8
                 case  opcodeString[0] == 'f' && opcodeString[2] == '5' && opcodeString[3] == '5': // Store registers V0 through Vx in memory starting at location I.
                     const start = 0
                     const end = x
-                    const memoryStartAddress = thiv.iRegister[0]
+                    const memoryStartAddress = this.iRegister[0]
                     for(let i = start; i < end; i++)
                     {
                         this.memory[memoryStartAddress + i] = this.vRegisters[i]
@@ -424,8 +471,8 @@ class CHIP8
                     break
                 default:
                     console.error('unknown instruction:', opcodeString)
-                    
-                    break
+                    clearInterval(this.intervalId)
+                    return
             }
         }, 1000 / CHIP8.CLOCK_SPEED);
     }
@@ -443,8 +490,8 @@ class CHIP8
         pixel.data[2] = val; // Blue
         pixel.data[3] = 255; // Alpha (opaque)
 
-        const newX = x
-        const newY = y
+        let newX = x
+        let newY = y
 
         if (x >=CHIP8.DISPLAY_WIDTH) {
             newX = x % CHIP8.DISPLAY_WIDTH
@@ -511,9 +558,9 @@ class CHIP8
 
     setupDelayTimer()
     {
-        if(this.delayTimer > 0)
+        if(this.delayTimer[0] > 0)
         {
-            this.delayTimer -= 1;
+            this.delayTimer[0] -= 1;
         }
     
         setTimeout(() => {
@@ -588,7 +635,12 @@ class CHIP8
     {
         if(key in CHIP8.KEYBOARD_MAP)
         {
-            return [key, CHIP8.KEYBOARD_MAP[key], this.pressedKeys[key]]
+            console.log("checking key:", key)
+            let normalKey = CHIP8.KEYBOARD_MAP[key]
+            let state = this.pressedKeys[normalKey] ?? false
+            const data = [key, normalKey, String.fromCharCode(normalKey), state]
+            console.log(data)
+            return data
         }else
         {
             console.error(key + " is unknown key in chip8 architecture")
