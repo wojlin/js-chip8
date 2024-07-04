@@ -4,9 +4,9 @@
         <link rel="stylesheet" href="style.css"/>
     </head>
     <body>
-        <button onclick="chip8.playTone(1);">A</button>
+        <button onclick="chip8.playTone(1);">play sound</button>
+        <button onclick="chip8.stopExecution();">stop</button>
         <input id="fileInput" type="file" accept=".ch8" />
-        <canvas id="emulator-display"></canvas>
-        <script src="main.js"></script>
+        <script type="module" src="main.js"></script>
     </body>
 </html>
