@@ -123,6 +123,7 @@ export class CHIP8
         console.log("PC:", this.programCounter[0])
         console.log("SP:", this.stackPointer[0])
         console.log("stack:", this.stack)
+        console.log("sound timer:", this.soundTimer[0], "delay timer:", this.delayTimer[0])
         console.groupEnd();
     }
 
@@ -409,7 +410,7 @@ export class CHIP8
                 case opcodeString[0] == 'e' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
                     
                     const key = this.mapKeyboard(this.vRegisters[x])
-                    if(!key[3])
+                    if(key[3])
                     {
                         this.programCounter[0] += 2
                     }
@@ -462,11 +463,11 @@ export class CHIP8
                     // The values of I and Vx are added, and the results are stored in I.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '2' && opcodeString[3] == '9': // Set I = location of sprite for digit Vx.
-                    this.iRegister[0] = this.vRegisters[x] // ?
+                    this.iRegister[0] = this.vRegisters[x] * 5
                     // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '3' && opcodeString[3] == '3': // Store BCD representation of Vx in memory locations I, I+1, and I+2.
-                    const val = parseInt(this.vRegisters[x], 16);
+                    const val = this.vRegisters[x];
                     this.memory[this.iRegister[0]] = Math.floor(val / 100);
                     this.memory[this.iRegister[0]+1] = Math.floor((val % 100) / 10);
                     this.memory[this.iRegister[0]+2] = val % 10;
@@ -475,12 +476,12 @@ export class CHIP8
                     // the tens digit at location I+1, and the ones digit at location I+2.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '5' && opcodeString[3] == '5': // Store registers V0 through Vx in memory starting at location I.
-                    const start = 0
-                    const end = x
+                    const copyStart = 0
+                    const copyEnd = x
                     const memoryStartAddress = this.iRegister[0]
-                    for(let i = start; i < end; i++)
+                    for(let currentCopyCell = copyStart; currentCopyCell <= copyEnd; currentCopyCell++)
                     {
-                        this.memory[memoryStartAddress + i] = this.vRegisters[i]
+                        this.memory[memoryStartAddress + currentCopyCell] = this.vRegisters[currentCopyCell]
                     }
                     // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
                     break

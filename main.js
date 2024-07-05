@@ -7,7 +7,7 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
         const reader = new FileReader();
         reader.onload = function(e) {
             const hexString = e.target.result;
-            chip8 = new CHIP8(hexString, true, true);
+            chip8 = new CHIP8(hexString, false, false);
             chip8.printMemory()
         };
         reader.readAsArrayBuffer(file);

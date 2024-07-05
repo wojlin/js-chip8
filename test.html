@@ -1,7 +1,23 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="style.css"/>
+        <style>
+            #emulator-display
+            {
+                position: absolute;
+                bottom: 10vh;
+                transform: translate(0,-50%);
+                margin:auto;
+                display: block;
+                width: 20vh;
+                height: 10vh;
+                left:0;
+                right:0;
+                border: 1px solid black;
+                image-rendering: pixelated; /* For modern browsers */
+                image-rendering: crisp-edges; /* For older browsers */
+            }
+        </style>
     </head>
     <body>
         <script type="module" src="chip8.test.js"></script>
