@@ -77,7 +77,7 @@ export class CHIP8
         this.soundTimer = new Uint8Array(1) // 8 bits
         this.programCounter = new Uint16Array(1) // 16 bits
         this.stack = new Uint16Array(16) // 16 bits
-        this.stackPointer = new Uint8Array(1) // 8 bits
+        this.stackPointer = 0
         this.display = this.createDisplay()
 
         this.pushSpritesToMemory()
@@ -119,9 +119,9 @@ export class CHIP8
             currentMem += 2
         }
         console.log("vRegisters:", this.vRegisters)
-        console.log("iRegister:", this.iRegister)
+        console.log("iRegister:", this.iRegister[0])
         console.log("PC:", this.programCounter[0])
-        console.log("SP:", this.stackPointer[0])
+        console.log("SP:", this.stackPointer)
         console.log("stack:", this.stack)
         console.log("sound timer:", this.soundTimer[0], "delay timer:", this.delayTimer[0])
         console.groupEnd();
@@ -135,7 +135,7 @@ export class CHIP8
             this.memory[CHIP8.NORMAL_START_POS + i] = parseInt(opcodeString, 16)
         }
         this.programCounter[0] = CHIP8.NORMAL_START_POS
-        this.stackPointer[0] = -1
+        this.stackPointer = -1
     }
 
     programLoop(delay=0)
@@ -192,7 +192,7 @@ export class CHIP8
                     " kk=", kk, 
                     "iRegister=", this.iRegister[0],
                     'pc', this.programCounter[0],
-                    "sp", this.stackPointer[0])
+                    "sp", this.stackPointer)
             }
             
             
@@ -203,16 +203,21 @@ export class CHIP8
                     this.clearDisplay()
                     break;
                 case opcodeString == '00ee': // Return from a subroutine.
-                    this.programCounter[0] = this.stack[this.stackPointer[0]] // ?
-                    this.stackPointer[0] -= 1
+                    let stackVal = this.stack[this.stackPointer]
+                    if(this.stackPointer < 0 || this.stackPointer > 15)
+                    {
+                        stackVal = 0
+                    }
+                    this.programCounter[0] = stackVal
+                    this.stackPointer -= 1
                     //The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
                     break;
                 case opcodeString[0] == '1': // Jump to location nnn.
                     this.programCounter[0] = nnn // The interpreter sets the program counter to nnn.
                     break
                 case opcodeString[0] == '2': // Call subroutine at nnn.
-                    this.stackPointer[0]+=1
-                    this.stack[this.stackPointer[0]] = this.programCounter[0]  // ?
+                    this.stackPointer+=1
+                    this.stack[this.stackPointer] = this.programCounter[0] 
                     this.programCounter[0] = nnn 
                     // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
                     break
@@ -407,7 +412,7 @@ export class CHIP8
                     // If the sprite is positioned so part of it is outside the coordinates of the display,
                     // it wraps around to the opposite side of the screen. 
                     break
-                case opcodeString[0] == 'e' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
+                case opcodeString[0] == 'e' && opcodeString[0] == '9' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
                     
                     const key = this.mapKeyboard(this.vRegisters[x])
                     if(key[3])

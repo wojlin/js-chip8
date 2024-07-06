@@ -18,7 +18,7 @@ function waitForCondition(conditionFunc, interval = 100) {
 
 
 
-// test LD Vx, byte
+//6xkk - LD Vx, byte
 async function testLDx()
 {
     let result = true
@@ -45,7 +45,7 @@ async function testLDx()
 }
 
 
-// test ADD Vx, byte
+//7xkk - ADD Vx, byte
 async function testADDx()
 {
     let result = true
@@ -72,7 +72,7 @@ async function testADDx()
 }
 
 
-// test LD Vx, Vy
+//8xy0 - LD Vx, Vy
 async function testLDxy()
 {
     let result = true
@@ -104,7 +104,7 @@ async function testLDxy()
 }
 
 
-// test OR Vx, Vy
+//8xy1 - OR Vx, Vy
 async function testORxy()
 {
     let result = true
@@ -139,7 +139,7 @@ async function testORxy()
 }
 
 
-// test AND Vx, Vy
+//8xy2 - AND Vx, Vy
 async function testANDxy()
 {
     let result = true
@@ -174,7 +174,7 @@ async function testANDxy()
 }
 
 
-// test XOR Vx, Vy
+//8xy3 - XOR Vx, Vy
 async function testXORxy()
 {
     let result = true
@@ -211,7 +211,7 @@ async function testXORxy()
 
 
 
-// test ADD Vx, Vy
+//8xy4 - ADD Vx, Vy
 async function testADDxy()
 {
     let result = true
@@ -275,7 +275,7 @@ async function testADDxy()
 }
 
 
-// test SUB Vx, Vy
+//8xy5 - SUB Vx, Vy
 async function testSUBxy()
 {
     let result = true
@@ -339,7 +339,7 @@ async function testSUBxy()
 }
 
 
-// test SHR Vx {, Vy}
+//8xy6 - SHR Vx {, Vy}
 async function testSHRx()
 {
     let result = true
@@ -398,7 +398,7 @@ async function testSHRx()
 }
 
 
-// test SUBN Vx, Vy
+//8xy7 - SUBN Vx, Vy
 async function testSUBNxy()
 {
     let result = true
@@ -457,7 +457,7 @@ async function testSUBNxy()
 }
 
 
-// test SHL Vx {, Vy}
+//8xyE - SHL Vx {, Vy}
 async function testSHLx()
 {
     let result = true
@@ -514,7 +514,7 @@ async function testSHLx()
 }
 
 
-// test SNE Vx, Vy
+//9xy0 - SNE Vx, Vy
 async function testSNExy()
 {
     let result = true
@@ -571,7 +571,7 @@ async function testSNExy()
 }
 
 
-// test LD I, addr
+//Annn - LD I, addr
 async function testLDi()
 {
     let result = true
@@ -603,7 +603,7 @@ async function testLDi()
 }
 
 
-// test JP V0, addr
+//Bnnn - JP V0, addr
 async function testJPv()
 {
     let result = true
@@ -636,7 +636,7 @@ async function testJPv()
 }
 
 
-// test RND Vx, byte
+//Cxkk - RND Vx, byte
 async function testRNDx()
 {
     let result = true
@@ -1004,7 +1004,7 @@ async function drwFont()
 }
 
 
-// test DRW Vx, Vy, nibble
+//Dxyn - DRW Vx, Vy, nibble
 async function testDRWxyn()
 {
     let result = true
@@ -1034,7 +1034,7 @@ async function testDRWxyn()
 }
 
 
-// Ex9E - SKP Vx
+//Ex9E - SKP Vx
 async function testSKPx()
 {
     let chip8 = new CHIP8(
@@ -1064,7 +1064,7 @@ async function testSKPx()
     }
 }
 
-// ExA1 - SKNP Vx
+//ExA1 - SKNP Vx
 async function testSKPNx()
 {
     let chip8 = new CHIP8(
@@ -1094,7 +1094,7 @@ async function testSKPNx()
     }
 }
 
-// Fx15 - LD DT, Vx
+//Fx15 - LD DT, Vx
 async function testLDDTx()
 {
     let chip8 = new CHIP8(
@@ -1121,7 +1121,7 @@ async function testLDDTx()
     }
 }
 
-// Fx18 - LD ST, Vx
+//Fx18 - LD ST, Vx
 async function testLDSTx()
 {
     let chip8 = new CHIP8(
@@ -1148,7 +1148,7 @@ async function testLDSTx()
     }
 }
 
-// Fx15 - LD DT, Vx
+//Fx07 - LD Vx, DT
 async function testLDxDT()
 {
     let chip8 = new CHIP8(
@@ -1176,7 +1176,7 @@ async function testLDxDT()
     }
 }
 
-// Fx0A - LD Vx, K
+//Fx0A - LD Vx, K
 async function testLDxK()
 {
     let chip8 = new CHIP8(
@@ -1204,7 +1204,7 @@ async function testLDxK()
 }
 
 
-// Fx1E - ADD I, Vx
+//Fx1E - ADD I, Vx
 async function testADDix()
 {
     let chip8 = new CHIP8(
@@ -1232,7 +1232,7 @@ async function testADDix()
 }
 
 
-// Fx29 - LD F, Vx
+//Fx29 - LD F, Vx
 async function testLDFx()
 {
     let result = true;
@@ -1595,6 +1595,66 @@ async function testCLS()
 }
 
 
+//2nnn - CALL addr
+async function testCALL()
+{
+    let chip8 = new CHIP8(
+        [
+        0x22, 0x06, // jump to 518
+        0x60, 0x01, // set register 0 to 1
+        0x00,0x00, // end program
+        0x60, 0x02, // set register 0 to 2
+        0x00,0x00, // end program
+        ] 
+        );
+
+    await waitForCondition(() => chip8.stop);
+    chip8.printMemory()
+
+    if(chip8.vRegisters[0] != 2 || chip8.stack[0] != 514)
+    {
+        console.error("not jumped")
+        chip8.printMemory()
+        return false
+    }
+    else
+    {
+        return true
+    }
+}
+
+//00EE - RET
+async function testRET()
+{
+    let chip8 = new CHIP8(
+        [  
+        0x60, 0x00, // set register 0 to 0
+        0x22, 0x04, // jump to 516
+        0x70, 0x01, // add 1 to register 0 
+        0x30, 0x02, // skip if true 
+        0x00, 0xEE, // return from a subroutine
+        0x00,0x00, // end program
+        ] 
+        );
+
+    await waitForCondition(() => chip8.stop);
+    chip8.printMemory()
+
+    if(chip8.vRegisters[0] != 2)
+    {
+        console.error("not jumped")
+        chip8.printMemory()
+        return false
+    }
+    else
+    {
+        return true
+    }
+}
+
+
+
+
 function test()
 {
     // Array of test functions
@@ -1629,10 +1689,12 @@ function test()
         testSEx,
         testSNEx,
         testJP,
-        testCLS,]
+        testCLS,
+        testCALL,
+        testRET]
 
     console.log("LAUNCHING TEST SUITE")
-    console.log("instructions coverage:", (tests.length/35)*100+"%")
+    console.log("instructions coverage:", (tests.length/34)*100+"%")
 
     let content = document.createElement("div")
     content.style = "border: solid black 2px; width: fit-content; margin:auto; display:block;"
@@ -1649,7 +1711,7 @@ function test()
     const ccell2 = document.createElement('td');
 
     ccell1.innerHTML = "coverage";
-    ccell2.innerHTML = ((tests.length/36)*100).toFixed(2)+"%"
+    ccell2.innerHTML = ((tests.length/34)*100).toFixed(2)+"%"
 
     crow.appendChild(ccell1);
     crow.appendChild(ccell2);
