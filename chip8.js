@@ -61,7 +61,7 @@ export class CHIP8
     //  7	8	9	E
     //  A	0	B	F
 
-    constructor(data, debugLoop = false, debugError = false)
+    constructor(data, screenID="", debugLoop = false, debugError = false)
     {
         this.isPlaying = false;
         this.savedTime = 0
@@ -78,7 +78,7 @@ export class CHIP8
         this.programCounter = new Uint16Array(1) // 16 bits
         this.stack = new Uint16Array(16) // 16 bits
         this.stackPointer = 0
-        this.display = this.createDisplay()
+        this.display = this.createDisplay(screenID)
 
         this.pushSpritesToMemory()
         this.setupSoundTimer();
@@ -208,7 +208,7 @@ export class CHIP8
                     {
                         stackVal = 0
                     }
-                    this.programCounter[0] = stackVal
+                    this.programCounter[0] = stackVal + 2
                     this.stackPointer -= 1
                     //The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
                     break;
@@ -217,7 +217,7 @@ export class CHIP8
                     break
                 case opcodeString[0] == '2': // Call subroutine at nnn.
                     this.stackPointer+=1
-                    this.stack[this.stackPointer] = this.programCounter[0] 
+                    this.stack[this.stackPointer] = this.programCounter[0] - 2
                     this.programCounter[0] = nnn 
                     // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
                     break
@@ -412,7 +412,7 @@ export class CHIP8
                     // If the sprite is positioned so part of it is outside the coordinates of the display,
                     // it wraps around to the opposite side of the screen. 
                     break
-                case opcodeString[0] == 'e' && opcodeString[0] == '9' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
+                case opcodeString[0] == 'e' && opcodeString[2] == '9' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
                     
                     const key = this.mapKeyboard(this.vRegisters[x])
                     if(key[3])
@@ -496,6 +496,13 @@ export class CHIP8
                         this.vRegisters[i] = this.memory[this.iRegister[0] + i]
                     }
                     // The interpreter reads values from memory starting at location I into registers V0 through Vx.
+                    break
+                case opcodeString == "0000":
+                    console.log("!!!stop!!!")
+                    this.stop = true;
+                    break
+                case opcodeString[0] == '0':
+                    this.programCounter[0] = nnn
                     break
                 default:
                     if(this.debugError)
@@ -669,17 +676,30 @@ export class CHIP8
         }
     }
 
-    createDisplay()
+    createDisplay(screenID)
     {
-        let display = document.createElement("canvas")
-        display.id = "emulator-display"
-        document.body.appendChild(display)
-        display.width = CHIP8.DISPLAY_WIDTH
-        display.height = CHIP8.DISPLAY_HEIGHT
-        let ctx = display.getContext('2d')
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, display.width, display.height);
-        return ctx
+        if(screenID == "")
+        {
+            let display = document.createElement("canvas")
+            display.id = "emulator-display"
+            document.body.appendChild(display)
+            display.width = CHIP8.DISPLAY_WIDTH
+            display.height = CHIP8.DISPLAY_HEIGHT
+            let ctx = display.getContext('2d')
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, display.width, display.height);
+            return ctx
+        }else
+        {
+            let display = document.getElementById(screenID)
+            display.width = CHIP8.DISPLAY_WIDTH
+            display.height = CHIP8.DISPLAY_HEIGHT
+            let ctx = display.getContext('2d')
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, display.width, display.height);
+            return ctx
+        }
+        
     }
 
     mapKeyboard(key)

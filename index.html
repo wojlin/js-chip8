@@ -4,9 +4,122 @@
         <link rel="stylesheet" href="style.css"/>
     </head>
     <body>
-        <button onclick="chip8.playTone(1);">play sound</button>
-        <button onclick="chip8.stopExecution();">stop</button>
-        <input id="fileInput" type="file" accept=".ch8" />
+
+        <div id="top">
+            <span>CHIP8 EMULATOR<span>by Wojciech Linowski</span></span>
+            <a href="/docs" >DOCS</a>
+            <a href="/editor" >EDITOR</a>
+            <a href="/debug" >DEBUG</a>
+            <a href="/test" >TESTS</a>
+        </div>
+
+        
+
+        <div id="content">
+
+            <div id="files">
+                <div id="files-frame-1">
+                    <div id="files-frame-2">
+                        <div id="files-frame-3">
+                            <p>Upload chip8 program:</p>
+                            <button onclick="document.getElementById('fileInput').click()">UPLOAD</button>
+                            <input id="fileInput" type="file" accept=".ch8" hidden="true"/>
+                            <p>Or choose from below:</p>
+                            <div class="custom-select">
+                                <select>
+                                  <option value="0">Select a game:</option>
+                                  <option value="1">Audi</option>
+                                  <option value="2">BMW</option>
+                                  <option value="3">Citroen</option>
+                                  <option value="4">Ford</option>
+                                  <option value="5">Honda</option>
+                                  <option value="6">Jaguar</option>
+                                  <option value="7">Land Rover</option>
+                                  <option value="8">Mercedes</option>
+                                  <option value="9">Mini</option>
+                                  <option value="10">Nissan</option>
+                                  <option value="11">Toyota</option>
+                                  <option value="12">Volvo</option>
+                                  <option value="0">Select a game:</option>
+                                  <option value="1">Audi</option>
+                                  <option value="2">BMW</option>
+                                  <option value="3">Citroen</option>
+                                  <option value="4">Ford</option>
+                                  <option value="5">Honda</option>
+                                  <option value="6">Jaguar</option>
+                                  <option value="7">Land Rover</option>
+                                  <option value="8">Mercedes</option>
+                                  <option value="9">Mini</option>
+                                  <option value="10">Nissan</option>
+                                  <option value="11">Toyota</option>
+                                  <option value="12">Volvo</option>
+                                </select>
+                              </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen">
+                <div id="screen-frame-1">
+                    <div id="screen-frame-2">
+                        <div id="screen-frame-3">
+                            <div id="screen-frame-4">
+                                <canvas id="emulator-display"></canvas>
+                                <div id="screen-tooltip">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <div id="keyboard">
+                <div id="keyboard-frame-1">
+                    <div id="keyboard-frame-2">
+                        <div id="keyboard-frame-3">
+                            <table id="keyboard-table">
+                                <tr>
+                                    <td><button onmouseup="chip8.pressedKeys[49] = false" onmousedown="chip8.pressedKeys[49] = true">1</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[50] = false" onmousedown="chip8.pressedKeys[50] = true">2</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[51] = false" onmousedown="chip8.pressedKeys[51] = true">3</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[52] = false" onmousedown="chip8.pressedKeys[52] = true">C</button></td>
+                                </tr>
+                                <tr>
+                                    <td><button onmouseup="chip8.pressedKeys[81] = false" onmousedown="chip8.pressedKeys[81] = true">4</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[87] = false" onmousedown="chip8.pressedKeys[87] = true">5</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[69] = false" onmousedown="chip8.pressedKeys[69] = true">6</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[82] = false" onmousedown="chip8.pressedKeys[82] = true">D</button></td>
+                                </tr>
+                                <tr>
+                                    <td><button onmouseup="chip8.pressedKeys[65] = false" onmousedown="chip8.pressedKeys[65] = true">7</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[83] = false" onmousedown="chip8.pressedKeys[83] = true">8</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[68] = false" onmousedown="chip8.pressedKeys[68] = true">9</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[70] = false" onmousedown="chip8.pressedKeys[70] = true">E</button></td>
+                                </tr>
+                                <tr>
+                                    <td><button onmouseup="chip8.pressedKeys[90] = false" onmousedown="chip8.pressedKeys[90] = true">A</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[88] = false" onmousedown="chip8.pressedKeys[88] = true">0</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[67] = false" onmousedown="chip8.pressedKeys[67] = true">B</button></td>
+                                    <td><button onmouseup="chip8.pressedKeys[86] = false" onmousedown="chip8.pressedKeys[86] = true">F</button></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>  
+                <div id="keyboard-tooltip">
+                    Original CHIP-8 keyboard layout is <br>mapped to PC keyboard as follows:
+                    <br><br>
+                    |1|2|3|C| => |1|2|3|4|<br>
+                    |4|5|6|D| => |Q|W|E|R|<br>
+                    |7|8|9|E| => |A|S|D|F|<br>
+                    |A|0|B|F| => |Z|X|C|V|<br><br>
+                </div>   
+            </div>
+        </div>
+        
+        
         <script type="module" src="main.js"></script>
     </body>
 </html>
