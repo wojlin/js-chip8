@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="style.css"/>
+        <link rel="stylesheet" href="static/style.css"/>
     </head>
     <body>
 
@@ -22,37 +22,19 @@
                     <div id="files-frame-2">
                         <div id="files-frame-3">
                             <p>Upload chip8 program:</p>
-                            <button onclick="document.getElementById('fileInput').click()">UPLOAD</button>
+                            <button id="upload-button" onclick="document.getElementById('fileInput').click()">UPLOAD</button>
                             <input id="fileInput" type="file" accept=".ch8" hidden="true"/>
                             <p>Or choose from below:</p>
                             <div class="custom-select">
-                                <select>
-                                  <option value="0">Select a game:</option>
-                                  <option value="1">Audi</option>
-                                  <option value="2">BMW</option>
-                                  <option value="3">Citroen</option>
-                                  <option value="4">Ford</option>
-                                  <option value="5">Honda</option>
-                                  <option value="6">Jaguar</option>
-                                  <option value="7">Land Rover</option>
-                                  <option value="8">Mercedes</option>
-                                  <option value="9">Mini</option>
-                                  <option value="10">Nissan</option>
-                                  <option value="11">Toyota</option>
-                                  <option value="12">Volvo</option>
-                                  <option value="0">Select a game:</option>
-                                  <option value="1">Audi</option>
-                                  <option value="2">BMW</option>
-                                  <option value="3">Citroen</option>
-                                  <option value="4">Ford</option>
-                                  <option value="5">Honda</option>
-                                  <option value="6">Jaguar</option>
-                                  <option value="7">Land Rover</option>
-                                  <option value="8">Mercedes</option>
-                                  <option value="9">Mini</option>
-                                  <option value="10">Nissan</option>
-                                  <option value="11">Toyota</option>
-                                  <option value="12">Volvo</option>
+                                <select id="program-select" onchange="selectProgram(this);">
+                                    <option value="">Select a game:</option>
+                                  <option value="programs/brix.ch8">brix</option>
+                                  <option value="programs/pong.ch8">pong</option>
+                                  <option value="programs/puzzle.ch8">puzzle</option>
+                                  <option value="programs/space_flight.ch8">space flight</option>
+                                  <option value="programs/space_invaders.ch8">space invaders</option>
+                                  <option value="programs/tetris.ch8">tetris</option>
+                                  <option value="programs/tic-tac-toe.ch8">tic-tac-toe</option>
                                 </select>
                               </div>
                         </div>

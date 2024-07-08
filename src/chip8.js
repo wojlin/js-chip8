@@ -88,6 +88,7 @@ export class CHIP8
         window.onkeyup = (e) => { this.pressedKeys[e.keyCode] = false; console.log(this.pressedKeys);}
         window.onkeydown = (e) => { this.pressedKeys[e.keyCode] = true; console.log(this.pressedKeys);}
 
+        this.await = []
         
         this.loadDataToMemory();
         this.programLoop();
@@ -208,7 +209,7 @@ export class CHIP8
                     {
                         stackVal = 0
                     }
-                    this.programCounter[0] = stackVal + 2
+                    this.programCounter[0] = stackVal 
                     this.stackPointer -= 1
                     //The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
                     break;
@@ -217,7 +218,7 @@ export class CHIP8
                     break
                 case opcodeString[0] == '2': // Call subroutine at nnn.
                     this.stackPointer+=1
-                    this.stack[this.stackPointer] = this.programCounter[0] - 2
+                    this.stack[this.stackPointer] = this.programCounter[0] 
                     this.programCounter[0] = nnn 
                     // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
                     break
@@ -415,6 +416,12 @@ export class CHIP8
                 case opcodeString[0] == 'e' && opcodeString[2] == '9' && opcodeString[3] == 'e': // Skip next instruction if key with the value of Vx is pressed.
                     
                     const key = this.mapKeyboard(this.vRegisters[x])
+
+                    if(!this.await.includes(key[0]))
+                    {
+                        this.await.push(key[0])
+                    }
+
                     if(key[3])
                     {
                         this.programCounter[0] += 2
@@ -424,6 +431,12 @@ export class CHIP8
                     break
                 case opcodeString[0] == 'e' && opcodeString[2] == 'a' && opcodeString[3] == '1': // Skip next instruction if key with the value of Vx is not pressed.
                     const keyN = this.mapKeyboard(this.vRegisters[x])
+
+                    if(!this.await.includes(keyN[0]))
+                    {
+                        this.await.push(keyN[0])
+                    }
+                    
                     if(!keyN[3])
                     {
                         this.programCounter[0] += 2

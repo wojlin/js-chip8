@@ -1,20 +1,76 @@
-import { CHIP8 } from './chip8.js';
+import { CHIP8 } from './src/chip8.js';
 
-var chip8 = null;
+window.chip8 = null;
+
+
 document.getElementById('fileInput').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const hexString = e.target.result;
-            chip8 = new CHIP8(hexString, "emulator-display", true, true);
-            chip8.printMemory()
+            if(!(window.chip8 == null || window.chip8.length === 0))
+            {
+              window.chip8.stopExecution()
+            }    
+            window.chip8 = new CHIP8(hexString, "emulator-display", true, true);
+            window.chip8.printMemory()
         };
         reader.readAsArrayBuffer(file);
     }
 });
 
 
+function httpGetAsync(theUrl)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+        {
+            const ret = xmlHttp.response
+            const hexString = ret;
+            if(!(window.chip8 == null || window.chip8.length === 0))
+            {
+              window.chip8.stopExecution()
+            }    
+            window.chip8 = new CHIP8(hexString, "emulator-display", true, true);
+            window.chip8.printMemory()
+        }
+    }
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.responseType = 'arraybuffer'; // Set response type to arraybuffer
+    xmlHttp.send(null);
+}
+
+
+
+window.selectProgram = function(elem)
+{
+    const val = document.getElementsByTagName("select")[0].options[elem].value
+    console.log(val)
+
+    httpGetAsync(val)
+}
+
+
+function listenKeyboard()
+{
+    setTimeout(function()
+    {
+        if(window.chip8 !== null)
+        {
+            console.log(chip8.await)
+            document.getElementById("screen-tooltip").style.opacity = "1"
+            document.getElementById("screen-tooltip").innerHTML = "Used Keys: " + chip8.await;
+        }else
+        {
+            document.getElementById("screen-tooltip").style.opacity = "0"
+        }
+        listenKeyboard();
+    }, 10); 
+}
+
+listenKeyboard()
 
 
 
@@ -55,6 +111,7 @@ for (i = 0; i < l; i++) {
           if (s.options[i].innerHTML == this.innerHTML) {
             s.selectedIndex = i;
             h.innerHTML = this.innerHTML;
+            selectProgram(s.selectedIndex)
             y = this.parentNode.getElementsByClassName("same-as-selected");
             yl = y.length;
             for (k = 0; k < yl; k++) {
@@ -82,6 +139,7 @@ for (i = 0; i < l; i++) {
 function closeAllSelect(elmnt) {
   /* A function that will close all select boxes in the document,
   except the current select box: */
+
   var x, y, i, xl, yl, arrNo = [];
   x = document.getElementsByClassName("select-items");
   y = document.getElementsByClassName("select-selected");

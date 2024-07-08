@@ -49,6 +49,7 @@ body
     margin-right: 5vh;
     float: right;
     transition: color 0.2s;
+    user-select: none;
 }
 
 #top > a:hover
@@ -86,6 +87,7 @@ body
     background: var(--screen-frame);
     border: solid var(--screen-border) black;
     border-radius:10px;
+    box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.85);
 }
 
 #screen-frame-2
@@ -102,6 +104,7 @@ body
     background: var(--screen-frame);
     border: solid var(--screen-border) black;
     border-radius:10px;
+    box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.85);
 }
 
 
@@ -119,6 +122,7 @@ body
     background: var(--screen-frame);
     border: solid var(--screen-border) black;
     border-radius:10px;
+    box-shadow: 0px -px 2px 2px rgba(0,0,0,0.85);
 }
 
 #screen-frame-4
@@ -135,7 +139,7 @@ body
     background: black;
     border: solid var(--screen-border) rgba(255,255,255,0.5);
     border-radius:10px;
-    padding: var(--screen-border)
+    padding: var(--screen-border);
 }
 
 
@@ -169,6 +173,7 @@ body
     font-family: monospace;
     font-size: 1.2vh;
     text-align: center;
+    user-select: none;
 }
 
 
@@ -203,6 +208,7 @@ body
     background: var(--screen-frame);
     border: solid var(--screen-border) black;
     border-radius:10px;
+    box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.85);
 }
 
 #keyboard-frame-3
@@ -217,6 +223,7 @@ body
     background: var(--screen-frame);
     border: solid var(--screen-border) black;
     border-radius:10px;
+    box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.85);
 }
 
 #keyboard-table
@@ -260,12 +267,38 @@ body
     font-family: monospace;
     font-size: 1.2vh;
     text-align: center;
+    user-select: none;
 }
 
 
 
 
+#upload-button
+{
+    background: #21260e;
+    color: white;
+    border-top: solid 0.5vh #63684a;
+    border-left: solid 0.5vh #63684a;
+    border-bottom: none;
+    border-right: none;
+    outline: 5px #21260e solid;
+    width: 80%;
+    margin:auto;
+    font-size:2vh;
+    font-family: digit;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 3vh;
+}
 
+
+#upload-button:hover
+{
+    border-top: solid 0.25vh #63684a;
+    border-left: solid 0.25vh #63684a;
+    outline: 5px #21260e solid;
+    opacity: 0.8;
+}
 
 #files
 {
@@ -300,6 +333,7 @@ body
     background: var(--screen-frame);
     border: solid var(--screen-border) black;
     border-radius:10px;
+    box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.85);
 }
 
 
@@ -319,7 +353,9 @@ body
     border-radius:10px;
     text-align: center;
     font-size: 1.7vh;
+    box-shadow: 0px 1px 2px 2px rgba(0,0,0,0.85);
 }
+
 
 
 
@@ -336,7 +372,12 @@ body
   }
   
   .select-selected {
-    background-color: black;
+    background: #21260e;
+    border-top: solid 0.5vh #63684a !important;
+    border-left: solid 0.5vh #63684a !important;
+    border-bottom: none;
+    border-right: none;
+    outline: 5px #21260e solid;
   }
   
   /* Style the arrow inside the select element: */
@@ -369,13 +410,14 @@ body
   /* Style items (options): */
   .select-items {
     position: absolute;
-    background-color: black;
+    background-color: #63684a ;
     top: 100%;
     left: 0;
     right: 0;
     z-index: 99;
     overflow-y: scroll;
-    height: 14vh;
+    height: 12vh;
+    outline: 5px #21260e solid;
   }
   
   /* Hide the items when the select box is closed: */
