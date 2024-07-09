@@ -1,5 +1,7 @@
 import { CHIP8 } from './src/chip8.js';
 
+window.debugMode = true;
+window.loadWithManual = true;
 window.chip8 = null;
 
 
@@ -12,8 +14,10 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
             if(!(window.chip8 == null || window.chip8.length === 0))
             {
               window.chip8.stopExecution()
+              delete window.chip8
             }    
-            window.chip8 = new CHIP8(hexString, "emulator-display", true, true);
+            window.chip8 = new CHIP8(hexString, "emulator-display", window.debugMode , window.debugMode );
+            window.chip8.manualPass = window.loadWithManual;
             window.chip8.printMemory()
         };
         reader.readAsArrayBuffer(file);
@@ -32,8 +36,10 @@ function httpGetAsync(theUrl)
             if(!(window.chip8 == null || window.chip8.length === 0))
             {
               window.chip8.stopExecution()
+              delete window.chip8
             }    
-            window.chip8 = new CHIP8(hexString, "emulator-display", true, true);
+            window.chip8 = new CHIP8(hexString, "emulator-display", window.debugMode , window.debugMode );
+            window.chip8.manualPass = window.loadWithManual;
             window.chip8.printMemory()
         }
     }
@@ -59,7 +65,6 @@ function listenKeyboard()
     {
         if(window.chip8 !== null)
         {
-            console.log(chip8.await)
             document.getElementById("screen-tooltip").style.opacity = "1"
             document.getElementById("screen-tooltip").innerHTML = "Used Keys: " + chip8.await;
         }else
@@ -162,3 +167,50 @@ function closeAllSelect(elmnt) {
 /* If the user clicks anywhere outside the select box,
 then close all select boxes: */
 document.addEventListener("click", closeAllSelect); 
+
+
+window.changeClockSpeed = function(speed)
+{
+  if(window.chip8 !== null)
+  {
+  window.chip8.CLOCK_SPEED = parseInt(speed);
+  }
+}
+
+window.nextInstruction = function()
+{
+  if(window.chip8 !== null)
+  {
+    window.chip8.checkNextInstruction()
+  }
+}
+
+
+window.CheckManualPass = function(pass)
+{
+  if(window.chip8 !== null)
+  {
+    window.chip8.manualPass = pass;
+    console.log(window.chip8.manualPass)
+    if(pass == false)
+    {
+      window.chip8.checkNextInstruction()
+    }
+  }else
+  {
+    window.loadWithManual = pass;
+    console.log(window.loadWithManual)
+  }
+
+  
+}
+
+try
+{
+  window.document.getElementById("manual_pass").checked = true;
+}catch
+{
+  window.loadWithManual = false;
+  window.debugMode = false;
+}
+

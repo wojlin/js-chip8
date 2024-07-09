@@ -14,7 +14,7 @@ export class CHIP8
     static FONT_START_POS = 0
     static FONT_END_POS = 80
 
-    static CLOCK_SPEED = 60 // Hz
+    
 
     static KEYBOARD_MAP = {
         0x0: 88,
@@ -63,6 +63,10 @@ export class CHIP8
 
     constructor(data, screenID="", debugLoop = false, debugError = false)
     {
+        this.CLOCK_SPEED = 6000 // Hz
+        this.manualPass = false;
+        this.nextInstruction = false;
+
         this.isPlaying = false;
         this.savedTime = 0
         this.stop = false
@@ -75,7 +79,7 @@ export class CHIP8
         this.iRegister = new Uint16Array(1); // 16 bits
         this.delayTimer = new Uint8Array(1) // 8 bits
         this.soundTimer = new Uint8Array(1) // 8 bits
-        this.programCounter = new Uint16Array(1) // 16 bits
+        this.programCounter = 0
         this.stack = new Uint16Array(16) // 16 bits
         this.stackPointer = 0
         this.display = this.createDisplay(screenID)
@@ -121,7 +125,7 @@ export class CHIP8
         }
         console.log("vRegisters:", this.vRegisters)
         console.log("iRegister:", this.iRegister[0])
-        console.log("PC:", this.programCounter[0])
+        console.log("PC:", this.programCounter)
         console.log("SP:", this.stackPointer)
         console.log("stack:", this.stack)
         console.log("sound timer:", this.soundTimer[0], "delay timer:", this.delayTimer[0])
@@ -135,22 +139,46 @@ export class CHIP8
             const opcodeString = this.data[i].toString(16).padStart(2, '0').toLowerCase();
             this.memory[CHIP8.NORMAL_START_POS + i] = parseInt(opcodeString, 16)
         }
-        this.programCounter[0] = CHIP8.NORMAL_START_POS
-        this.stackPointer = -1
+        this.programCounter = CHIP8.NORMAL_START_POS
+        this.stackPointer = 0
     }
 
-    programLoop(delay=0)
+
+     waitForTrue(interval = 100) {
+        return new Promise(resolve => {
+            const check = setInterval(() => {
+                if (this.nextInstruction) {
+                    clearInterval(check);
+                    resolve();
+                }
+            }, interval);
+        });
+    }
+
+    checkNextInstruction()
+    {
+        this.nextInstruction = true;
+        console.log("next instruction:")
+    }
+
+    async programLoop(delay=0)
     {
         if(this.stop)
         {
             return
         }
 
+        if(this.manualPass)
+        {
+            await this.waitForTrue();
+            this.nextInstruction = false;
+        }
+
         setTimeout(() => {
 
             this.savedTime = performance.now()
 
-            const addr = parseInt(this.programCounter[0])
+            const addr = parseInt(this.programCounter)
 
             if(addr < CHIP8.NORMAL_START_POS || addr >= CHIP8.MEMORY_SIZE)
             {
@@ -164,7 +192,6 @@ export class CHIP8
             }
 
             const opcode = this.memory[addr].toString(16).padStart(2, '0').toLowerCase() + this.memory[addr+1].toString(16).padStart(2, '0').toLowerCase()
-            this.programCounter[0] += 2
 
             const opcodeString = opcode.toString(16);
 
@@ -192,7 +219,7 @@ export class CHIP8
                     " y=", y,
                     " kk=", kk, 
                     "iRegister=", this.iRegister[0],
-                    'pc', this.programCounter[0],
+                    'pc', this.programCounter,
                     "sp", this.stackPointer)
             }
             
@@ -202,75 +229,81 @@ export class CHIP8
             {
                 case opcodeString == '00e0': // Clear the display.
                     this.clearDisplay()
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     break;
                 case opcodeString == '00ee': // Return from a subroutine.
-                    let stackVal = this.stack[this.stackPointer]
-                    if(this.stackPointer < 0 || this.stackPointer > 15)
-                    {
-                        stackVal = 0
-                    }
-                    this.programCounter[0] = stackVal 
-                    this.stackPointer -= 1
+                    this.stackPointer = (this.stackPointer - 1) & (this.stack.length - 1);
+                    this.programCounter = this.stack[this.stackPointer];
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     //The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
                     break;
                 case opcodeString[0] == '1': // Jump to location nnn.
-                    this.programCounter[0] = nnn // The interpreter sets the program counter to nnn.
+                    this.programCounter = nnn // The interpreter sets the program counter to nnn.
                     break
-                case opcodeString[0] == '2': // Call subroutine at nnn.
-                    this.stackPointer+=1
-                    this.stack[this.stackPointer] = this.programCounter[0] 
-                    this.programCounter[0] = nnn 
+                case opcodeString[0] == '2': // Call subroutine at nnn. 
+                    this.stack[this.stackPointer] = this.programCounter
+                    this.stackPointer = (this.stackPointer + 1) & (this.stack.length - 1);
+                    this.programCounter = nnn 
                     // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
                     break
                 case opcodeString[0] == '3': // Skip next instruction if Vx = kk.
                     if(this.vRegisters[x] == kk)
                     {
-                        this.programCounter[0] += 2 // ?
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter compares register Vx to kk,
                     // and if they are equal, increments the program counter by 2.
                     break
                 case opcodeString[0] == '4': // Skip next instruction if Vx != kk.
                     if(this.vRegisters[x] != kk)
                     {
-                        this.programCounter[0] += 2 // ?
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter compares register Vx to kk, 
                     // and if they are not equal, increments the program counter by 2.
                     break
                 case opcodeString[0] == '5' && opcodeString[3] == '0': // Skip next instruction if Vx = Vy.
                     if(this.vRegisters[x] == this.vRegisters[y])
                     {
-                        this.programCounter[0] += 2 // ?
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
                     break
                 case opcodeString[0] == '6': // Set Vx = kk.
                     this.vRegisters[x] = kk
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter puts the value kk into register Vx.
                     break
                 case opcodeString[0] == '7': // Set Vx = Vx + kk.
                     this.vRegisters[x] += kk
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Adds the value kk to the value of register Vx, then stores the result in Vx. 
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '0': // Set Vx = Vy.
                     this.vRegisters[x] = this.vRegisters[y]
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Stores the value of register Vy in register Vx.
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '1': // Set Vx = Vx OR Vy.
                     this.vRegisters[x] = (this.vRegisters[x] | this.vRegisters[y])
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx.
                     // A bitwise OR compares the corrseponding bits from two values,
                     // and if either bit is 1, then the same bit in the result is also 1. Otherwise, it is 0.
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '2': // Set Vx = Vx OR Vy.
                     this.vRegisters[x] = (this.vRegisters[x] & this.vRegisters[y])
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Performs a bitwise AND on the values of Vx and Vy, 
                     // then stores the result in Vx. A bitwise AND compares the corrseponding bits from two values
                     // and if both bits are 1, then the same bit in the result is also 1. Otherwise, it is 0. 
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '3': // Set Vx = Vx XOR Vy.
                     this.vRegisters[x] = (this.vRegisters[x] ^ this.vRegisters[y])
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Performs a bitwise exclusive OR on the values of Vx and Vy,
                     // then stores the result in Vx. An exclusive OR compares the corrseponding bits from two values,
                     // and if the bits are not both the same, then the corresponding bit in the result is set to 1. Otherwise, it is 0.
@@ -284,6 +317,7 @@ export class CHIP8
                         this.vRegisters[this.vRegisters.length - 1] = 1
                     }
                     this.vRegisters[x] = result & 0xFF
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The values of Vx and Vy are added together. 
                     // If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0.
                     // Only the lowest 8 bits of the result are kept, and stored in Vx
@@ -297,6 +331,7 @@ export class CHIP8
                     }
 
                     this.vRegisters[x] = (this.vRegisters[x] - this.vRegisters[y]) & 0xFF
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     
                     //If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
                     break
@@ -304,6 +339,7 @@ export class CHIP8
 
                     this.vRegisters[this.vRegisters.length - 1] = this.vRegisters[x] & 0x01
                     this.vRegisters[x] = this.vRegisters[x] >> 1
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
                     break
                 case opcodeString[0] == '8' && opcodeString[3] == '7': // Set Vx = Vy - Vx, set VF = NOT borrow.
@@ -313,6 +349,7 @@ export class CHIP8
                         this.vRegisters[this.vRegisters.length - 1] = 1
                     }
                     this.vRegisters[x] = (this.vRegisters[y] - this.vRegisters[x]) & 0xFF;
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // If Vy > Vx, then VF is set to 1, otherwise 0. 
                     // Then Vx is subtracted from Vy, and the results stored in Vx.
                     break
@@ -320,26 +357,31 @@ export class CHIP8
                     this.vRegisters[this.vRegisters.length - 1] = (this.vRegisters[x] & 0x80) >> 7
                     let shl =  this.vRegisters[x] << 1;
                     this.vRegisters[x] = shl & 0xFF;
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     //If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
                     break
                 case opcodeString[0] == '9' && opcodeString[3] == '0': // Skip next instruction if Vx != Vy.
                     if(this.vRegisters[x] != this.vRegisters[y])
                     {
-                        this.programCounter[0] += 2 // ?
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF; // ?
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     //The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
                     break
                 case opcodeString[0] == 'a': // Set I = nnn.
                     this.iRegister[0] = nnn
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The value of register I is set to nnn.
                     break
                 case opcodeString[0] == 'b': // Jump to location nnn + V0.
-                    this.programCounter[0] = nnn + this.vRegisters[0]
+                    this.programCounter = nnn + this.vRegisters[0]
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The program counter is set to nnn plus the value of V0.
                     break
                 case opcodeString[0] == 'c': // Set Vx = random byte AND kk.
                     const random = Math.floor(Math.random() * 256);
                     this.vRegisters[x] = kk & random
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter generates a random number from 0 to 255,
                     // which is then ANDed with the value kk. The results are stored in Vx.
                     // See instruction 8xy2 for more information on AND.
@@ -352,9 +394,13 @@ export class CHIP8
                     const yCoord = this.vRegisters[y]
 
                     let touchedPixel = false
+                    
+                    if(this.debugLoop)
+                    {   
+                        console.group("drawing")
+                        console.log("x =",xCoord," y =",yCoord, "startAddress =",startAddress, "bytesToRead =",bytesToRead)
+                    }
 
-                    console.group("drawing")
-                    console.log("x =",xCoord," y =",yCoord, "startAddress =",startAddress, "bytesToRead =",bytesToRead)
                     for(let i = 0; i < bytesToRead; i++)
                     {
                         let byte = this.memory[startAddress+i];
@@ -369,33 +415,38 @@ export class CHIP8
                             const bs = (byte & mask).toString(2);
                             byte = bs.padStart(8, '0');
                         }
-
-                        console.log(byte)
                         
+                        if(this.debugLoop)
+                        {
+                        console.log(byte)
+                        }
                         
 
                         for(let xIndex = 0;  xIndex < CHIP8.SPRITE_WIDTH;  xIndex++)
                         {
-                            let state = true
-                            if(byte[xIndex] == '0')
-                            {
-                                state = false
-                            }
+                            const pixelStatus = this.getPixel(xCoord +  xIndex, yCoord + i)
+                            const isOn = byte[xIndex] == '1'
 
-                            if(this.getPixel(xCoord +  xIndex, yCoord + i))
+                            if(pixelStatus && isOn)
                             {
-                                this.setPixel(xCoord +  xIndex, yCoord + i, !state)
                                 touchedPixel = true
                             }
-                            else
+
+                            if(pixelStatus ? !isOn : isOn)
                             {
-                                this.setPixel(xCoord +  xIndex, yCoord + i, state)
-                            }                          
+                                this.setPixel(xCoord +  xIndex, yCoord + i, true)
+                            }else
+                            {
+                                this.setPixel(xCoord +  xIndex, yCoord + i, false)
+                            }                        
                         }
                     }
-                    
+
+                    if(this.debugLoop)
+                    {
                     console.log("detected collision:", touchedPixel)
                     console.groupEnd()
+                    }
 
                     if(touchedPixel)
                     {
@@ -404,7 +455,8 @@ export class CHIP8
                     {
                         this.vRegisters[this.vRegisters.length - 1] = 0
                     }  
-        
+
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
 
                     // The interpreter reads n bytes from memory, starting at the address stored in I.
                     // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
@@ -424,8 +476,9 @@ export class CHIP8
 
                     if(key[3])
                     {
-                        this.programCounter[0] += 2
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Checks the keyboard, and if the key corresponding to the value of Vx
                     // is currently in the down position, PC is increased by 2.
                     break
@@ -439,17 +492,25 @@ export class CHIP8
                     
                     if(!keyN[3])
                     {
-                        this.programCounter[0] += 2
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // Checks the keyboard, and if the key corresponding to the value of Vx
                     // is currently in the up position, PC is increased by 2.
                     break
                 case opcodeString[0] == 'f' && opcodeString[2] == '0' && opcodeString[3] == '7': // Set Vx = delay timer value.
                     this.vRegisters[x] = this.delayTimer[0]
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     //The value of DT is placed into Vx.
                     break
                 case opcodeString[0] == 'f' && opcodeString[2] == '0' && opcodeString[3] == 'a': // Wait for a key press, store the value of the key in Vx.
                     let keyPressed = false
+
+                    if(!this.await.includes("any key"))
+                    {
+                        this.await.push("any key")
+                    }
+                    
                     
                     for (let key in this.pressedKeys) {
                         if (this.pressedKeys[key] === true) {
@@ -460,28 +521,32 @@ export class CHIP8
                         }
                     }
                     
-                    if(keyPressed == false)
+                    if(keyPressed == true)
                     {
-                        this.programCounter[0] -= 2
-
+                        this.programCounter = (this.programCounter + 2) & 0x0FFF;
+                        this.await = this.await.filter(element => element !== "any key");
                     }
                     
                     // All execution stops until a key is pressed, then the value of that key is stored in Vx.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == '5': // Set delay timer = Vx.
                     this.delayTimer[0] = this.vRegisters[x]
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // DT is set equal to the value of Vx.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == '8': // Set sound timer = Vx.
                     this.soundTimer[0] = this.vRegisters[x]
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // ST is set equal to the value of Vx.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '1' && opcodeString[3] == 'e': // Set I = I + Vx.
                     this.iRegister[0] += this.vRegisters[x]
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The values of I and Vx are added, and the results are stored in I.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '2' && opcodeString[3] == '9': // Set I = location of sprite for digit Vx.
                     this.iRegister[0] = this.vRegisters[x] * 5
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '3' && opcodeString[3] == '3': // Store BCD representation of Vx in memory locations I, I+1, and I+2.
@@ -489,6 +554,7 @@ export class CHIP8
                     this.memory[this.iRegister[0]] = Math.floor(val / 100);
                     this.memory[this.iRegister[0]+1] = Math.floor((val % 100) / 10);
                     this.memory[this.iRegister[0]+2] = val % 10;
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter takes the decimal value of Vx, 
                     // and places the hundreds digit in memory at location in I,
                     // the tens digit at location I+1, and the ones digit at location I+2.
@@ -501,13 +567,15 @@ export class CHIP8
                     {
                         this.memory[memoryStartAddress + currentCopyCell] = this.vRegisters[currentCopyCell]
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
                     break
                 case  opcodeString[0] == 'f' && opcodeString[2] == '6' && opcodeString[3] == '5': // Read registers V0 through Vx from memory starting at location I.
-                    for(let i = 0; i < x; i++)
+                    for(let i = 0; i <= x; i++)
                     {
                         this.vRegisters[i] = this.memory[this.iRegister[0] + i]
                     }
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     // The interpreter reads values from memory starting at location I into registers V0 through Vx.
                     break
                 case opcodeString == "0000":
@@ -515,19 +583,19 @@ export class CHIP8
                     this.stop = true;
                     break
                 case opcodeString[0] == '0':
-                    this.programCounter[0] = nnn
+                    this.programCounter = nnn
+                    this.programCounter = (this.programCounter + 2) & 0x0FFF;
                     break
                 default:
                     if(this.debugError)
                     {
                         console.error('unknown instruction:', opcodeString)
                     }
-                    //document.getElementById("emulator-display").remove()
                     this.stop = true;
                     return
             }
             let timeElapsed = performance.now() - this.savedTime
-            let refreshRate = 1000 / CHIP8.CLOCK_SPEED
+            let refreshRate = 1000 / this.CLOCK_SPEED
             //console.log("lag:", timeElapsed, "normalTime", refreshRate)
             if(timeElapsed > refreshRate)
             {
@@ -617,7 +685,7 @@ export class CHIP8
     
         setTimeout(() => {
             this.setupSoundTimer();
-        }, 1000/CHIP8.CLOCK_SPEED);
+        }, 1000/this.CLOCK_SPEED);
     }
 
     setupDelayTimer()
@@ -629,7 +697,7 @@ export class CHIP8
     
         setTimeout(() => {
             this.setupDelayTimer();
-        }, 1000/CHIP8.CLOCK_SPEED);
+        }, 1000/this.CLOCK_SPEED);
     }
 
 

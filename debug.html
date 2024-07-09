@@ -101,6 +101,14 @@
             </div>
         </div>
         
+        <div id="debug_console">
+            <label for="clock_speed">Clock Speed:</label><input onchange="window.changeClockSpeed(this.value)" id="clock_speed" name="clock_speed" type="number" min="0" max="1000" value="60"/>
+            <br>
+            <label for="manual_pass">Manual Pass:</label><input onchange="window.CheckManualPass(this.checked)" id="manual_pass" name="manual_pass" type="checkbox" checked="true">
+            <br>
+            <label for="pass">Pass:</label><button onclick="window.nextInstruction()" id="pass" name="pass">NEXT INSTRUCTION</button>
+
+        </div>
         
         <script type="module" src="main.js"></script>
     </body>

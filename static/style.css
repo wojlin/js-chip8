@@ -428,3 +428,15 @@ body
   .select-items div:hover, .same-as-selected {
     background-color: rgba(0, 0, 0, 0.1);
   } 
+
+  #debug_console
+  {
+    position: absolute;
+    top:15vh;
+    border: solid 2px black;
+    left:0;
+    right:0;
+    display: block;
+    margin:auto;
+    width: 300px;
+  }
