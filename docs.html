@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chip-8 Technical Reference v1.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        header {
+            background: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+        nav {
+            margin: 0;
+            padding: 10px;
+            background: #f4f4f4;
+        }
+        nav a {
+            margin-right: 15px;
+            color: #333;
+            text-decoration: none;
+        }
+        section {
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .table-of-contents {
+            list-style-type: none;
+            padding: 0;
+        }
+        .table-of-contents li {
+            margin: 5px 0;
+        }
+        .table-of-contents a {
+            color: #007bff;
+        }
+        .table-of-contents a:visited {
+            color: #6c757d;
+        }
+        .diagram, .listing {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+        .listing {
+            white-space: pre;
+            font-family: monospace;
+        }
+        .code {
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Chip-8 Technical Reference v1.0</h1>
+    </header>
+    
+    <nav>
+        <a href="#toc">Table of Contents</a>
+        <a href="#about">About Chip-8</a>
+        <a href="#specs">Chip-8 Specifications</a>
+        <a href="#instructions">Chip-8 Instructions</a>
+    </nav>
+    
+    <section id="toc">
+        <h2>0.0 - Table of Contents</h2>
+        <ul class="table-of-contents">
+            <li><a href="#using">0.1 - Using This Document</a></li>
+            <li><a href="#about">1.0 - About Chip-8</a></li>
+            <li><a href="#specs">2.0 - Chip-8 Specifications</a></li>
+            <li><a href="#instructions">3.0 - Chip-8 Instructions</a></li>
+        </ul>
+    </section>
+    
+    <section id="using">
+        <h2>0.1 - Using This Document</h2>
+        <p>While creating this document, I took every effort to try to make it easy to read, as well as easy to find what you're looking for.</p>
+        <p>In most cases, where a hexadecimal value is given, it is followed by the equivalent decimal value in parenthesis. For example, "<code>0x200 (512)</code>".</p>
+        <p>In most cases, when a word or letter is italicized, it is referring to a variable value, for example, if I write "<code>Vx</code>", the <code>x</code> refers to a 4-bit value.</p>
+        <p>The most important thing to remember as you read this document is that every [TOC] link will take you back to the Table Of Contents. Also, links that you have not yet visited will appear in blue, while links you have used will be gray.</p>
+    </section>
+    
+    <section id="about">
+        <h2>1.0 - About Chip-8</h2>
+        <p>Whenever I mention to someone that I'm writing a Chip-8 interpreter, the response is always the same: "What's a Chip-8?"</p>
+        <p>Chip-8 is a simple, interpreted, programming language which was first used on some do-it-yourself computer systems in the late 1970s and early 1980s. The COSMAC VIP, DREAM 6800, and ETI 660 computers are a few examples. These computers typically were designed to use a television as a display, had between 1 and 4K of RAM, and used a 16-key hexadecimal keypad for input. The interpreter took up only 512 bytes of memory, and programs, which were entered into the computer in hexadecimal, were even smaller.</p>
+        <p>In the early 1990s, the Chip-8 language was revived by a man named Andreas Gustafsson. He created a Chip-8 interpreter for the HP48 graphing calculator, called Chip-48. The HP48 was lacking a way to easily make fast games at the time, and Chip-8 was the answer. Chip-48 later begat Super Chip-48, a modification of Chip-48 which allowed higher resolution graphics, as well as other graphical enhancements.</p>
+        <p>Chip-48 inspired a whole new crop of Chip-8 interpreters for various platforms, including MS-DOS, Windows 3.1, Amiga, HP48, MSX, Adam, and ColecoVision. I became involved with Chip-8 after stumbling upon Paul Robson's interpreter on the World Wide Web. Shortly after that, I began writing my own Chip-8 interpreter.</p>
+        <p>This document is a compilation of all the different sources of information I used while programming my interpreter.</p>
+    </section>
+    
+    <section id="specs">
+        <h2>2.0 - Chip-8 Specifications</h2>
+        <p>This section describes the Chip-8 memory, registers, display, keyboard, and timers.</p>
+        
+        <h3>2.1 - Memory</h3>
+        <p>The Chip-8 language is capable of accessing up to 4KB (4,096 bytes) of RAM, from location <code>0x000 (0)</code> to <code>0xFFF (4095)</code>. The first 512 bytes, from <code>0x000</code> to <code>0x1FF</code>, are where the original interpreter was located, and should not be used by programs.</p>
+        <p>Most Chip-8 programs start at location <code>0x200 (512)</code>, but some begin at <code>0x600 (1536)</code>. Programs beginning at <code>0x600</code> are intended for the ETI 660 computer.</p>
+        <div class="diagram">
+            <p>Memory Map:</p>
+            <pre>
++---------------+= 0xFFF (4095) End of Chip-8 RAM
+|               |
+|               |
+|               |
+|               |
+|               |
+| 0x200 to 0xFFF|
+|     Chip-8    |
+| Program / Data|
+|     Space     |
+|               |
+|               |
+|               |
++- - - - - - - -+= 0x600 (1536) Start of ETI 660 Chip-8 programs
+|               |
+|               |
+|               |
++---------------+= 0x200 (512) Start of most Chip-8 programs
+| 0x000 to 0x1FF|
+| Reserved for  |
+|  interpreter  |
++---------------+= 0x000 (0) Start of Chip-8 RAM
+            </pre>
+        </div>
+        
+        <h3>2.2 - Registers</h3>
+        <p>Chip-8 has 16 general purpose 8-bit registers, usually referred to as <code>Vx</code>, where <code>x</code> is a hexadecimal digit (0 through F). There is also a 16-bit register called <code>I</code>. This register is generally used to store memory addresses, so only the lowest (rightmost) 12 bits are usually used.</p>
+        <p>The <code>VF</code> register should not be used by any program, as it is used as a flag by some instructions. See section 3.0, Instructions for details.</p>
+        <p>Chip-8 also has two special purpose 8-bit registers, for the delay and sound timers. When these registers are non-zero, they are automatically decremented at a rate of 60Hz. See the section 2.5, Timers & Sound, for more information on these.</p>
+        <p>There are also some "pseudo-registers" which are not accessible from Chip-8 programs. The program counter (<code>PC</code>) should be 16-bit, and is used to store the currently executing address. The stack pointer (<code>SP</code>) can be 8-bit, it is used to point to the topmost level of the stack.</p>
+        <p>The stack is an array of 16 16-bit values, used to store the address that the interpreter should return to when finished with a subroutine. Chip-8 allows for up to 16 levels of nested subroutines.</p>
+        
+        <h3>2.3 - Keyboard</h3>
+        <p>Chip-8 has a hexadecimal keypad which consists of 16 keys. The keys are mapped to hexadecimal digits 0 through F. The key states are polled by the Chip-8 interpreter.</p>
+        <div class="diagram">
+            <p>Keypad Layout:</p>
+            <pre>
++-----+-----+-----+-----+
+| 1  | 2  | 3  | C  |
++-----+-----+-----+-----+
+| 4  | 5  | 6  | D  |
++-----+-----+-----+-----+
+| 7  | 8  | 9  | E  |
++-----+-----+-----+-----+
+| A  | 0  | B  | F  |
++-----+-----+-----+-----+
+            </pre>
+        </div>
+        
+        <h3>2.4 - Display</h3>
+        <p>Chip-8 has a display with a resolution of 64x32 pixels. The display is a grid of 64 columns by 32 rows. Each pixel is represented by a single bit. The display is updated by the Chip-8 interpreter during each cycle, drawing or erasing pixels according to the current instructions.</p>
+        <div class="diagram">
+            <p>Display Grid:</p>
+        </div>
+        
+        <h3>2.5 - Timers & Sound</h3>
+        <p>The Chip-8 has two timers, the delay timer and the sound timer. These timers are decremented at a rate of 60Hz. When a timer reaches zero, it stops decrementing. The delay timer controls the speed of certain operations, while the sound timer is used to create sound effects.</p>
+        <p>The delay timer and sound timer are both 8-bit registers.</p>
+    </section>
+    
+    <section id="instructions">
+        <h2>3.0 - Chip-8 Instructions</h2>
+        <p>This section describes the Chip-8 instructions in detail. Instructions are represented as 16-bit opcodes.</p>
+        
+        <h3>3.1 - Instruction Format</h3>
+        <p>Each Chip-8 instruction is a 16-bit opcode. The opcode is divided into nibbles (4-bit sections) and represented in hexadecimal format.</p>
+        
+        <h3>3.2 - Instruction Set</h3>
+        <p>The Chip-8 instruction set includes:</p>
+        <ul>
+            <li><code>00E0</code> - Clear the screen</li>
+        <li><code>00EE</code> - Return from subroutine</li>
+        <li><code>1NNN</code> - Jump to address NNN</li>
+        <li><code>2NNN</code> - Call subroutine at NNN</li>
+        <li><code>3XNN</code> - Skip next instruction if Vx = NN</li>
+        <li><code>4XNN</code> - Skip next instruction if Vx != NN</li>
+        <li><code>5XY0</code> - Skip next instruction if Vx = Vy</li>
+        <li><code>6XNN</code> - Set Vx = NN</li>
+        <li><code>7XNN</code> - Add NN to Vx</li>
+        <li><code>8XY0</code> - Set Vx = Vy</li>
+        <li><code>8XY1</code> - Set Vx = Vx OR Vy</li>
+        <li><code>8XY2</code> - Set Vx = Vx AND Vy</li>
+        <li><code>8XY3</code> - Set Vx = Vx XOR Vy</li>
+        <li><code>8XY4</code> - Add Vy to Vx</li>
+        <li><code>8XY5</code> - Subtract Vy from Vx</li>
+        <li><code>8XY6</code> - Shift Vx right by one</li>
+        <li><code>8XY7</code> - Set Vx = Vy - Vx</li>
+        <li><code>8XYE</code> - Shift Vx left by one</li>
+        <li><code>9XY0</code> - Skip next instruction if Vx != Vy</li>
+        <li><code>AFFF</code> - Set I = NNN</li>
+        <li><code>BFFF</code> - Jump to address NNN + V0</li>
+        <li><code>CXNN</code> - Set Vx = random byte AND NN</li>
+        <li><code>DXYN</code> - Draw sprite at coordinate (Vx, Vy)</li>
+        <li><code>E0NN</code> - Skip next instruction if key with value NN is pressed</li>
+        <li><code>F0NN</code> - Set delay timer = Vx</li>
+        <li><code>F1NN</code> - Set sound timer = Vx</li>
+        <li><code>F2NN</code> - Add Vx to I</li>
+        <li><code>F3NN</code> - Set I = address of sprite for digit Vx</li>
+        <li><code>F4NN</code> - Store BCD representation of Vx at I</li>
+        <li><code>F5NN</code> - Store registers V0 to Vx at I</li>
+        <li><code>F6NN</code> - Read registers V0 to Vx from I</li>
+        </ul>
+    </section>
+</body>
+</html>
